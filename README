@@ -1,0 +1,183 @@
+"use client";
+import React, { useState, useMemo } from "react";
+
+const TABS = [
+  { id: "estudos", label: "Estudos" },
+  { id: "portugues", label: "Quiz - Português" },
+  { id: "matematica", label: "Quiz - Matemática" },
+  { id: "humanas", label: "Quiz - Ciências Humanas" },
+  { id: "natureza", label: "Quiz - Ciências da Natureza" },
+  { id: "redacao", label: "Quiz - Redação" },
+];
+
+// Banco de questões resumido (adicione mais depois)
+const QUESTION_BANK = {
+  portugues: [
+    { id: 1, text: "Assinale a frase correta:", choices: ["Fazem anos...", "Faz ano..."], answer: 0, difficulty: "easy" },
+    { id: 2, text: "O termo 'do que' em 'Ele se arrependeu do que disse' é:", choices: ["Conjunção", "Pronome relativo"], answer: 1, difficulty: "medium" },
+  ],
+  matematica: [
+    { id: 1, text: "2x + 3 = 11. Qual o valor de x?", choices: ["4", "5"], answer: 0, difficulty: "easy" },
+  ],
+  humanas: [{ id: 1, text: "A Revolução Francesa começou em:", choices: ["1789", "1822"], answer: 0, difficulty: "easy" }],
+  natureza: [{ id: 1, text: "Unidade básica dos seres vivos:", choices: ["Célula", "Molécula"], answer: 0, difficulty: "easy" }],
+  redacao: [{ id: 1, text: "Elemento essencial em uma redação dissertativa:", choices: ["Tese e argumentos", "Rimas"], answer: 0, difficulty: "easy" }],
+};
+
+function sampleQuestions(bank, count = 5) {
+  let pool = [...bank];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, count);
+}
+
+export default function Page() {
+  const [active, setActive] = useState("estudos");
+  const [currentQuiz, setCurrentQuiz] = useState({ tab: null, questions: [] });
+  const [answers, setAnswers] = useState({});
+  const [showResults, setShowResults] = useState(false);
+
+  function startQuiz(tabId) {
+    const bank = QUESTION_BANK[tabId];
+    const qs = sampleQuestions(bank, 5);
+    setCurrentQuiz({ tab: tabId, questions: qs });
+    setAnswers({});
+    setShowResults(false);
+    setActive(tabId);
+  }
+
+  function chooseOption(qIndex, choiceIndex) {
+    setAnswers((s) => ({ ...s, [qIndex]: choiceIndex }));
+  }
+
+  function finishQuiz() {
+    setShowResults(true);
+  }
+
+  function score() {
+    let correct = 0;
+    currentQuiz.questions.forEach((q, i) => {
+      if (answers[i] === q.answer) correct++;
+    });
+    return { correct, total: currentQuiz.questions.length };
+  }
+
+  const studiesContent = useMemo(
+    () => (
+      <div className="prose max-w-none">
+        <h2>Conteúdos da Prova IFBA 2026</h2>
+        <p>Resumos por área:</p>
+        <ul>
+          <li><strong>Português:</strong> gramática, interpretação, redação.</li>
+          <li><strong>Matemática:</strong> álgebra, geometria, porcentagem.</li>
+          <li><strong>Humanas:</strong> história, geografia, atualidades.</li>
+          <li><strong>Natureza:</strong> biologia, física, química.</li>
+          <li><strong>Redação:</strong> dissertativa-argumentativa.</li>
+        </ul>
+      </div>
+    ),
+    []
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg p-6">
+        <h1 className="text-2xl font-bold mb-6">IFBA 2026 — Site de Estudos</h1>
+
+        {/* Menu de Abas */}
+        <nav className="flex gap-2 mb-6 flex-wrap">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActive(t.id)}
+              className={`px-3 py-2 rounded ${
+                active === t.id ? "bg-indigo-600 text-white" : "bg-gray-100"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+
+        <main>
+          {active === "estudos" && <section>{studiesContent}</section>}
+
+          {["portugues", "matematica", "humanas", "natureza", "redacao"].includes(active) && (
+            <section>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">
+                  {TABS.find((t) => t.id === active)?.label}
+                </h2>
+                <button
+                  onClick={() => startQuiz(active)}
+                  className="px-3 py-2 bg-green-600 text-white rounded"
+                >
+                  Iniciar Quiz
+                </button>
+              </div>
+
+              {/* Quiz */}
+              {currentQuiz.tab === active && (
+                <div>
+                  {currentQuiz.questions.map((q, i) => (
+                    <div key={q.id} className="mb-4 p-4 border rounded">
+                      <p className="font-medium">{i + 1}. {q.text}</p>
+                      <div className="mt-2 space-y-1">
+                        {q.choices.map((c, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => chooseOption(i, idx)}
+                            disabled={showResults}
+                            className={`block w-full text-left px-3 py-1 rounded ${
+                              answers[i] === idx ? "bg-indigo-100" : "bg-gray-50"
+                            }`}
+                          >
+                            {String.fromCharCode(65 + idx)}. {c}
+                          </button>
+                        ))}
+                      </div>
+                      {showResults && (
+                        <p className="text-sm mt-2">
+                          Correta: <strong>{q.choices[q.answer]}</strong>
+                        </p>
+                      )}
+                    </div>
+                  ))}
+
+                  {!showResults ? (
+                    <button
+                      onClick={finishQuiz}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded"
+                    >
+                      Finalizar
+                    </button>
+                  ) : (
+                    <div className="mt-4 space-y-2">
+                      <p>
+                        Resultado: {score().correct}/{score().total} acertos
+                      </p>
+                      <button
+                        onClick={() => setActive("estudos")}
+                        className="px-4 py-2 bg-yellow-500 rounded"
+                      >
+                        Estudar
+                      </button>
+                      <button
+                        onClick={() => startQuiz(active)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded"
+                      >
+                        Refazer Quiz
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
